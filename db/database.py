@@ -1,33 +1,25 @@
-# Pour creer la connexion a la base de donnees
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
-
-#declarative_base est la classe de base pour tous les modeles
-from sqlalchemy.ext.declarative import declarative_base
-
-# sessionmaker cree des session de base de donnes
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
+# Charger les variables d'environnement depuis le fichier .env
+load_dotenv()
 
-# CREATION DU MOTEUR DE BASE DE DONNEES
-engine = create_engine(
-    settings.sqlalchemy_database_url,
-    # echo=True Affiche toutes les requêtes SQL dans le terminal (utile pour déboguer)
-    echo=settings.ENVIRONMENT == "development"
-)
+# Idéalement, cette URL vient de ton fichier .env
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# SESSION FACTORY
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+# Création du moteur de base de données
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-# CLASSE DE BASE POUR LES MODELES
+# Création de la fabrique de sessions
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Classe de base pour tous nos modèles (Article, User...)
 Base = declarative_base()
 
-
-#DEPENDENCY INJECTION POUR FASTAPI
+# Dépendance pour obtenir une session de base de données dans nos routes
 def get_db():
     db = SessionLocal()
     try:

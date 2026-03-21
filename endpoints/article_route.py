@@ -2,14 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from schemas.article import ArticleCreate, ArticleResponse, ArticleUpdate
-from services.article import ArticleService
+from schemas.article_schema import ArticleCreate, ArticleResponse, ArticleUpdate
+from services.article_service import ArticleService
 from db.database import get_db
-from app.api.deps import get_current_user
-from models.user import User
+from core.deps import get_current_user
+from models.user_model import User
 
-# APIRouter() : Permet de grouper des routes dans un module séparé
-router = APIRouter(tags=["articles"]) 
+router = APIRouter(prefix="/api/articles", tags=["articles"]) 
 
 # 1.GET /articles - Lister tous les articles de l'utilisateur connecté
 @router.get("/", response_model=List[ArticleResponse])
@@ -17,7 +16,7 @@ async def get_articles(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return ArticleService.get_all(db, current_user.id)
+    return ArticleService.get_all(db, current_user)
 
 
 # 2. POST /articles - Créer un article
@@ -27,7 +26,7 @@ async def create_article(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return ArticleService.create(db, article, current_user.id)
+    return ArticleService.create(db, article, current_user)
 
 
 # 3. GET /articles/{article_id} - Récupérer un article
@@ -37,7 +36,7 @@ async def get_article(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    article = ArticleService.get_by_id(db, article_id, user_id=current_user.id)
+    article = ArticleService.get_by_id(db, article_id, user_id=current_user)
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -54,7 +53,7 @@ async def update_article(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    updated_article = ArticleService.update(db, article_id, article_update, user_id=current_user.id)
+    updated_article = ArticleService.update(db, article_id, article_update, user_id=current_user)
     if not updated_article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -70,7 +69,7 @@ async def delete_article(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    deleted = ArticleService.delete(db, article_id, user_id=current_user.id)
+    deleted = ArticleService.delete(db, article_id, user_id=current_user)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
