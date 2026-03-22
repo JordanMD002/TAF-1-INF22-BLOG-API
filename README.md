@@ -1,4 +1,4 @@
-# Blog API — TAF1 INF222 – EC1 (Développement Backend) : Programmation Web
+# Blog API — TAF1 INF222 – EC1 (Développement Backend)
 
 API REST backend pour la gestion d'un blog, développée avec **FastAPI** et **MySQL**.
 
@@ -6,8 +6,8 @@ API REST backend pour la gestion d'un blog, développée avec **FastAPI** et **M
 
 ## Stack technique
 
-- **Framework** : FastAPI
-- **Base de données** : MySQL (via SQLAlchemy + PyMySQL)
+- **Framework** : FastAPI (Python)
+- **Base de données** : MySQL via SQLAlchemy + PyMySQL
 - **Migrations** : Alembic
 - **Authentification** : JWT (python-jose) + Bcrypt
 - **Gestionnaire de paquets** : uv
@@ -32,67 +32,90 @@ blog_api/
 │   ├── user_model.py           # Modèle User (id, email, username, role...)
 │   └── article_model.py        # Modèle Article (titre, contenu, auteur...)
 ├── schemas/
-│   ├── user_schema.py          # Schémas Pydantic User
-│   └── article_schema.py       # Schémas Pydantic Article
+│   ├── user_schema.py          # Schémas Pydantic + validation
+│   └── article_schema.py       # Schémas Pydantic + validation
 ├── services/
 │   ├── user_service.py         # Logique métier utilisateurs
 │   └── article_service.py      # Logique métier articles
 ├── alembic/                    # Migrations base de données
 ├── main.py                     # Point d'entrée FastAPI
+├── start.sh                    # Script de démarrage rapide
+├── setup.sh                    # Script d'installation
 ├── Procfile                    # Déploiement Render
 ├── requirements.txt
+├── .env.example                # Template variables d'environnement
 └── .env                        # Variables d'environnement (non versionné)
 ```
 
 ---
 
-## Installation locale
+## Installation
 
 ### Prérequis
 
 - Python 3.11+
 - MySQL 8+
-- [uv](https://github.com/astral-sh/uv)
+- [uv](https://github.com/astral-sh/uv) — `pip install uv`
 
-### Étapes
+### Installation rapide (recommandée)
 
 ```bash
 # 1. Cloner le dépôt
-git clone https://github.com/ton-username/blog-api.git
-cd blog-api
+git clone https://github.com/MBEZOU-JORDAN/TP-INF-222-API-Blog.git
+cd TP-INF-222-API-Blog
 
-# 2. Créer et activer l'environnement virtuel
+# 2. Configurer l'environnement
+cp .env.example .env
+# Ouvrir .env et remplir DATABASE_URL et SECRET_KEY
+
+# 3. Installer et migrer
+./setup.sh
+
+# 4. Démarrer le serveur
+./start.sh
+```
+
+### Installation manuelle (étape par étape)
+
+```bash
+# 1. Créer et activer l'environnement virtuel
 uv venv
 source .venv/bin/activate
 
-# 3. Installer les dépendances
-uv add fastapi pymysql sqlalchemy alembic bcrypt python-jose python-dotenv uvicorn
+# 2. Installer les dépendances
+uv pip install -r requirements.txt
 
-# 4. Créer le fichier .env
+# 3. Créer le fichier .env
 cp .env.example .env
 # Remplir les valeurs dans .env
 
-# 5. Créer la base de données MySQL
-mysql -u root -p -e "CREATE DATABASE blog_db;"
+# 4. Créer la base de données MySQL
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS blog_db;"
 
-# 6. Appliquer les migrations
+# 5. Appliquer les migrations
 .venv/bin/python -m alembic upgrade head
 
-# 7. Lancer le serveur
+# 6. Lancer le serveur
 .venv/bin/python -m uvicorn main:app --reload
 ```
 
-L'API est disponible sur `http://localhost:8000` et la documentation sur `http://localhost:8000/docs`.
+L'API est disponible sur `http://localhost:8000`
+La documentation Swagger sur `http://localhost:8000/docs`
 
 ---
 
 ## Variables d'environnement
 
-Créer un fichier `.env` à la racine :
+Créer un fichier `.env` à partir du template `.env.example` :
 
 ```env
-DATABASE_URL=mysql+pymysql://root:motdepasse@localhost:3306/blog_db
-SECRET_KEY=ta_cle_secrete_ici
+DATABASE_URL=mysql+pymysql://root:TON_MOT_DE_PASSE@localhost:3306/blog_db
+SECRET_KEY=une_cle_secrete_longue_et_aleatoire
+```
+
+Pour générer une `SECRET_KEY` sécurisée :
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 ---
@@ -101,9 +124,9 @@ SECRET_KEY=ta_cle_secrete_ici
 
 ### Authentification
 
-| Méthode | Endpoint | Description | Auth |
-|---------|----------|-------------|------|
-| POST | `/api/auth/register` | Inscription (1er user → admin) | Non |
+| Méthode | Endpoint | Description | Auth requis |
+|---------|----------|-------------|-------------|
+| POST | `/api/auth/register` | Inscription (1er user → admin automatiquement) | Non |
 | POST | `/api/auth/login` | Connexion → retourne un token JWT | Non |
 | PUT | `/api/auth/users/{id}/promote` | Promouvoir un user en admin | Admin |
 
@@ -112,15 +135,19 @@ SECRET_KEY=ta_cle_secrete_ici
 ```bash
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "username": "monuser", "password": "motdepasse"}'
+  -d '{
+    "email": "jordan@example.com",
+    "username": "jordan_b",
+    "password": "motdepasse123"
+  }'
 ```
 
-Réponse :
+Réponse `201 Created` :
 ```json
 {
   "id": 1,
-  "email": "user@example.com",
-  "username": "monuser",
+  "email": "jordan@example.com",
+  "username": "jordan_b",
   "role": "admin"
 }
 ```
@@ -129,10 +156,10 @@ Réponse :
 
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
-  -d "username=monuser&password=motdepasse"
+  -d "username=jordan_b&password=motdepasse123"
 ```
 
-Réponse :
+Réponse `200 OK` :
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -144,16 +171,16 @@ Réponse :
 
 ### Articles
 
-Tous les endpoints articles nécessitent un token JWT dans le header :
+Tous les endpoints articles nécessitent le token JWT dans le header :
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <access_token>
 ```
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | POST | `/api/articles/` | Créer un article |
-| GET | `/api/articles/filter` | Lister les articles (filtres optionnels) |
-| GET | `/api/articles/search` | Rechercher dans titres et contenu |
+| GET | `/api/articles/` | Lister les articles (filtres optionnels) |
+| GET | `/api/articles/search?query=texte` | Recherche plein texte |
 | GET | `/api/articles/{id}` | Récupérer un article par ID |
 | PUT | `/api/articles/{id}` | Modifier un article |
 | DELETE | `/api/articles/{id}` | Supprimer un article |
@@ -166,8 +193,8 @@ curl -X POST http://localhost:8000/api/articles/ \
   -H "Content-Type: application/json" \
   -d '{
     "titre": "Introduction à FastAPI",
-    "contenu": "FastAPI est un framework moderne...",
-    "auteur": "monuser",
+    "contenu": "FastAPI est un framework moderne pour construire des APIs avec Python.",
+    "auteur": "jordan_b",
     "categorie": "Technologie",
     "tags": "python, api, backend"
   }'
@@ -178,8 +205,8 @@ Réponse `201 Created` :
 {
   "id": 1,
   "titre": "Introduction à FastAPI",
-  "contenu": "FastAPI est un framework moderne...",
-  "auteur": "monuser",
+  "contenu": "FastAPI est un framework moderne pour construire des APIs avec Python.",
+  "auteur": "jordan_b",
   "date": "2026-03-21T20:00:00",
   "categorie": "Technologie",
   "tags": "python, api, backend",
@@ -187,9 +214,16 @@ Réponse `201 Created` :
 }
 ```
 
-#### Exemple — Filtrer par catégorie et date
+#### Exemple — Lister avec filtres
 
 ```bash
+# Filtrer par catégorie
+GET /api/articles/?categorie=Technologie
+
+# Filtrer par date
+GET /api/articles/?date=2026-03-21
+
+# Combiner les filtres
 GET /api/articles/?categorie=Technologie&date=2026-03-21
 ```
 
@@ -199,42 +233,127 @@ GET /api/articles/?categorie=Technologie&date=2026-03-21
 GET /api/articles/search?query=FastAPI
 ```
 
+Réponse `200 OK` :
+```json
+[
+  {
+    "id": 1,
+    "titre": "Introduction à FastAPI",
+    "contenu": "FastAPI est un framework moderne...",
+    "auteur": "jordan_b",
+    "date": "2026-03-21T20:00:00",
+    "categorie": "Technologie",
+    "tags": "python, api, backend",
+    "user_id": 1
+  }
+]
+```
+
+#### Exemple — Modifier un article
+
+```bash
+curl -X PUT http://localhost:8000/api/articles/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titre": "Introduction à FastAPI — Mis à jour",
+    "categorie": "Développement"
+  }'
+```
+
+#### Exemple — Supprimer un article
+
+```bash
+curl -X DELETE http://localhost:8000/api/articles/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+Réponse `204 No Content` (corps vide).
+
 ---
 
-## Codes HTTP utilisés
+## Validation des entrées
 
-| Code | Signification |
-|------|--------------|
-| 200 | Succès |
-| 201 | Ressource créée |
-| 204 | Suppression réussie |
-| 400 | Requête invalide (champ manquant, email déjà utilisé...) |
-| 401 | Non authentifié (token manquant ou expiré) |
-| 403 | Accès interdit (droits insuffisants) |
-| 404 | Ressource introuvable |
-| 500 | Erreur serveur interne |
+Les champs sont validés automatiquement par Pydantic avant tout traitement.
+
+### Articles
+
+| Champ | Règle |
+|-------|-------|
+| `titre` | Obligatoire, 1–200 caractères, non vide |
+| `contenu` | Obligatoire, non vide |
+| `auteur` | Obligatoire, 1–100 caractères |
+| `categorie` | Optionnel, max 100 caractères |
+| `tags` | Optionnel, max 255 caractères |
+
+### Utilisateurs
+
+| Champ | Règle |
+|-------|-------|
+| `email` | Obligatoire, format email valide |
+| `username` | Obligatoire, 3–50 caractères, lettres/chiffres/`-`/`_` uniquement |
+| `password` | Obligatoire, minimum 6 caractères |
+
+#### Exemple — Erreur de validation
+
+```bash
+curl -X POST http://localhost:8000/api/articles/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"titre": "   ", "contenu": "test", "auteur": "jordan"}'
+```
+
+Réponse `422 Unprocessable Entity` :
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "titre"],
+      "msg": "Le titre ne peut pas être vide ou contenir uniquement des espaces",
+      "type": "value_error"
+    }
+  ]
+}
+```
+
+---
+
+## Codes HTTP
+
+| Code | Signification | Cas d'usage |
+|------|--------------|-------------|
+| `200` | OK | Lecture, modification réussie |
+| `201` | Created | Création d'un article ou d'un utilisateur |
+| `204` | No Content | Suppression réussie |
+| `400` | Bad Request | Email déjà utilisé, username déjà pris |
+| `401` | Unauthorized | Token manquant, invalide ou expiré |
+| `403` | Forbidden | Action réservée aux admins |
+| `404` | Not Found | Article ou utilisateur introuvable |
+| `422` | Unprocessable Entity | Données invalides (validation Pydantic) |
+| `500` | Internal Server Error | Erreur serveur inattendue |
 
 ---
 
 ## Gestion des rôles
 
 - Le **premier utilisateur** inscrit reçoit automatiquement le rôle `admin`
-- Les suivants reçoivent le rôle `user`
+- Les utilisateurs suivants reçoivent le rôle `user`
 - Seul un `admin` peut promouvoir un autre utilisateur via `PUT /api/auth/users/{id}/promote`
-- Un `admin` voit tous les articles ; un `user` ne voit que les siens
+- Un `admin` voit **tous** les articles ; un `user` ne voit que **les siens**
 
 ---
 
 ## Déploiement
 
-L'API est déployée sur **Render** avec une base de données MySQL hébergée séparément.
+Le code source est disponible sur GitHub :
+**[https://github.com/MBEZOU-JORDAN/TP-INF-222-API-Blog](https://github.com/MBEZOU-JORDAN/TP-INF-222-API-Blog)**
 
-- **URL de l'API** : `https://blog-api-xxxx.onrender.com`
-- **Documentation Swagger** : `https://blog-api-xxxx.onrender.com/docs`
+> Le déploiement cloud n'a pas été finalisé en raison d'une contrainte sur la base de données MySQL (absence de carte bancaire pour les services gratuits compatibles). L'API fonctionne entièrement en local.
 
 ---
 
 ## Auteur
 
-**MBEZOU DJAMEN JORDAN BENI** — 24G2898 — INF222 – EC1 (Développement Backend): Programmation Web  
-Université de Yaoundé I
+**MBEZOU DJAMEN JORDAN BENI** — Matricule : 24G2898
+Informatique L2 — UE INF222 – EC1 (Développement Backend)
+Université de Yaoundé I — Année académique 2025-2026
